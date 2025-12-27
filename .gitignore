@@ -1,0 +1,23 @@
+# 1. Python Cache (Junk files)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 2. Database (IMPORTANT: Don't upload your real user data!)
+*.db
+*.sqlite3
+
+# 3. Virtual Environment (Never upload this)
+venv/
+env/
+.env
+
+# 4. Large AI Models (GitHub will reject files >100MB)
+# You should download these fresh on every machine instead of uploading them.
+models/
+data/banking_faiss.index
+
+# 5. IDE Settings (Optional)
+.vscode/
+.idea/

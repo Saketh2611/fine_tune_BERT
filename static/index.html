@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Banking Agent</title>
+    <style>
+        :root { --bg: #1a1a1a; --chat: #2d2d2d; --accent: #00d2ff; --user: #007bff; }
+        body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        .chat-container { width: 100%; max-width: 600px; background: var(--chat); display: flex; flex-direction: column; height: 100vh; border-left: 1px solid #444; border-right: 1px solid #444; }
+        .header { padding: 20px; background: linear-gradient(135deg, #005cbf, var(--accent)); text-align: center; font-weight: bold; font-size: 1.2rem; }
+        .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; }
+        .user { align-self: flex-end; background: var(--user); color: white; border-bottom-right-radius: 2px; }
+        .bot { align-self: flex-start; background: #383838; color: #ddd; border-bottom-left-radius: 2px; border-left: 3px solid var(--accent); }
+        .meta { display: block; font-size: 0.7rem; color: #aaa; margin-top: 5px; }
+        .input-area { padding: 20px; background: #252525; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #444; background: #333; color: white; outline: none; }
+        button { padding: 10px 20px; background: var(--accent); border: none; border-radius: 25px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #00aaff; }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="header">🏦 Enterprise Banking Agent</div>
+    <div class="messages" id="chat-box">
+        <div class="message bot">System Online. How can I help you today?</div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Type request..." onkeypress="handleKey(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+<script>
+    const chatBox = document.getElementById("chat-box");
+    function handleKey(e) { if(e.key === "Enter") sendMessage(); }
+    
+    async function sendMessage() {
+        const input = document.getElementById("user-input");
+        const text = input.value.trim();
+        if (!text) return;
+        
+        addMessage(text, "user");
+        input.value = "";
+        
+        try {
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text: text})
+            });
+            const data = await res.json();
+            const botHtml = `${data.result.bot_reply}<br><span class="meta">Intent: ${data.predicted_intent} | Source: ${data.result.source}</span>`;
+            addMessage(botHtml, "bot", true);
+        } catch (e) { addMessage("Error connecting to server.", "bot"); }
+    }
+    
+    function addMessage(text, type, isHtml=false) {
+        const div = document.createElement("div");
+        div.className = `message ${type}`;
+        if(isHtml) div.innerHTML = text; else div.innerText = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+</body>
+</html>

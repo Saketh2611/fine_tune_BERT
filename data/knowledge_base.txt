@@ -1,0 +1,40 @@
+GLOBAL BANKING POLICY & FAQ MANUAL
+
+1. ACCOUNT MANAGEMENT & SECURITY
+[Age Limit] You must be at least 18 years old to open a standard account. Junior accounts are available for ages 6-17 with parental consent.
+[Identity Verification] To comply with KYC regulations, we require a valid government-issued photo ID (Passport or Driver's License) and a video selfie. Verification usually takes 10 minutes but can take up to 24 hours.
+[Passcode & Biometrics] You can enable FaceID or Fingerprint login in the 'Security' section of the app. If you forget your passcode, use the 'Forgot Passcode' link on the login screen to reset it via email.
+[Personal Details] To update your address or phone number, go to Settings > Personal Details. For name changes due to marriage/legal reasons, please chat with support.
+[Closing Account] To terminate your account, ensure your balance is $0.00 and contact support via in-app chat.
+
+2. CARDS & DELIVERY
+[Ordering Cards] Physical cards can be ordered in the 'Cards' tab. Standard delivery is free and takes 5-7 business days. Express delivery (DHL) costs $15 and takes 2-3 days.
+[Virtual Cards] You can generate a Virtual Card immediately for online shopping. These are free and separate from your physical card.
+[Disposable Cards] For extra security, use a Disposable Virtual Card. The number changes after every single transaction, making it impossible for hackers to reuse.
+[Activation] When your physical card arrives, use the app to scan the card or enter the last 4 digits to activate it.
+[Pins] You can view or unblock your PIN instantly in the app under 'Card Settings'.
+[Contactless] Contactless payments work for amounts up to $50. For security, you must perform one Chip & PIN transaction first to enable contactless.
+
+3. TRANSFERS & PAYMENTS
+[Speed] Domestic transfers (Same-country) are usually instant but can take up to 2 hours. International (SWIFT) transfers take 3-5 business days.
+[Beneficiaries] If you cannot add a beneficiary, check if their bank is in a sanctioned country or if the IBAN format is correct.
+[Cancelling] Once a transfer is "Executed", it cannot be cancelled. If it is "Pending", you may have a 'Cancel' button in the transaction details.
+[Failed Transfers] If a transfer fails, the money is usually reverted to your account within 24 hours. Common reasons include incorrect account numbers or insufficient funds.
+[Limits] Standard accounts can transfer up to $5,000 per day. Premium accounts can transfer up to $20,000 per day.
+
+4. TOP-UPS (ADDING MONEY)
+[Methods] You can top up your account via Bank Transfer (Free), Debit Card (Instant, Free), or Apple/Google Pay.
+[Credit Cards] Top-ups using a Credit Card incur a 1.5% processing fee.
+[Limits] New users have a daily top-up limit of $1,000 to prevent fraud. This increases automatically after 30 days of activity.
+[Failed Top-up] If your top-up fails, check with your other bank to ensure they aren't blocking the transaction as "Suspicious Activity".
+
+5. FEES & EXCHANGE RATES
+[Exchange Rates] We use the real-time interbank exchange rate (the same one you see on Google).
+[Weekend Fee] The currency markets close on weekends. To protect against fluctuations, we charge a 1% markup on foreign exchanges made on Saturdays and Sundays.
+[ATM Withdrawal] Standard accounts get $200 free ATM withdrawals per month. After that, a 2% fee applies. Premium accounts get $800 free limit.
+[Foreign Transaction] Spending abroad in supported currencies is fee-free on weekdays.
+
+6. DIGITAL WALLETS & PHONES
+[Apple/Google Pay] Yes, we fully support Apple Pay and Google Pay. Go to the 'Cards' tab and tap "Add to Wallet".
+[Lost Phone] If you lose your phone, login to our website from a computer to freeze your account immediately.
+[Device Compatibility] The app requires iOS 13.0 or later, or Android 7.0 or later.
