@@ -4,64 +4,43 @@ A full-stack, privacy-first banking assistant capable of routing **77 distinct b
 
 This project implements a **Hybrid AI Architecture** that combines **BERT-based Intent Classification**, **Named Entity Recognition (NER)**, and **Retrieval Augmented Generation (RAG)** to handle both transactional commands and policy questions with high precision.
 
+Unlike standard chatbots, this agent features a **Real SQL Transaction Ledger**, meaning it actually checks balances, deducts funds, and logs transfers in a local database.
+
 ---
 
 ## 🚀 Key Features
 
 * **Hybrid Intelligence:** Dynamically switches between **Action Execution** (e.g., transfers, freezing cards) and **Knowledge Retrieval** (e.g., explaining fees).
+* **Real SQL Ledger:** Integrated `SQLite` database that persists user balances and transaction history. It is not just text; it is a real banking backend.
 * **Deterministic Logic Router:** A custom-built Python router that prioritizes critical banking actions over general chit-chat to prevent hallucinations.
 * **Local & Secure:** Runs entirely on CPU (No OpenAI/Google API keys required). Perfect for banking compliance where data cannot leave the premise.
-* **Sub-50ms Latency:** Optimized inference pipeline using `DistilBERT` and `FAISS` (Facebook AI Similarity Search).
-* **Heuristic Intent Correction:** A custom logic layer that fixes model ambiguity in complex sentences (see "Technical Challenges" below).
+* **Heuristic Intent Correction:** A custom logic layer that fixes model ambiguity (e.g., distinguishing "Transfer to Saketh" from general complaints).
 
 ---
 
 ## 🛠️ Tech Stack
 
 * **Backend:** FastAPI (Python)
+* **Database:** SQLite (Built-in, zero config)
 * **ML Models:**
     * *Intent:* Fine-tuned `distilbert-base-uncased` on the **Banking77** dataset.
     * *NER:* `bert-base-ner` for extracting Names (`PER`) and Amounts.
     * *Embeddings:* `sentence-transformers/all-MiniLM-L6-v2`.
 * **Vector DB:** FAISS (for high-speed RAG retrieval).
-* **Frontend:** HTML5, CSS3, Vanilla JavaScript (Single Page Application).
+* **Frontend:** HTML5, CSS3, Vanilla JavaScript.
 
 ---
 
 ## 🧠 System Architecture
 
-The system does not rely on a single "Black Box" model. Instead, it uses a pipeline of specialized engines:
+The system uses a pipeline of specialized engines:
 
-1.  **The Dispatcher (Intent Model):** Instantly classifies the user's text into one of 77 categories (e.g., `lost_card`, `atm_limit`).
+1.  **The Dispatcher (Intent Model):** Instantly classifies the user's text into one of 77 categories.
 2.  **The Extractor (NER Model):** Scans the text for critical details like **Names** (Who to pay?) or **Dates**.
-3.  **The Logic Router (App.py):** The "Brain" of the system. It follows strict rules:
-    * *Is this a Critical Action?* (e.g., "Freeze Card") → **Trigger Rule Engine**.
-    * *Is this a Policy Question?* (e.g., "What are the fees?") → **Trigger RAG**.
-4.  **The Librarian (RAG):** If triggered, searches the `knowledge_base.txt` policy manual for the exact answer using Vector Search.
-
----
-
-## 💡 Technical Challenges & Solutions
-
-### The "Transfer to David" Ambiguity
-**The Problem:**
-The `Banking77` dataset consists largely of customer complaints (e.g., "My transfer didn't go through"). It lacks training examples of *commands* containing specific names.
-When a user typed *"Transfer money to David"*, the model incorrectly classified it as a complaint (`balance_not_updated_after_bank_transfer`) because it didn't recognize "David" as a variable.
-
-**The Solution:**
-I implemented a **Heuristic Correction Layer** in the inference pipeline.
-Before routing the request, the system checks:
-1.  Did the model predict a "Balance Issue"?
-2.  Did the NER engine detect a **Person (`PER`)**?
-
-If **BOTH** are true, the system overrides the model's prediction and forces the intent to `transfer_into_account`. This ensures 100% accuracy for transfer commands without retraining the entire model.
-
-```python
-# Actual code snippet from the Correction Layer
-if intent in misclassified_transfers and "PER" in entities:
-    print(f"⚠️ Correction: Detected '{intent}' but found a Name. Switching to 'transfer_into_account'.")
-    intent = "transfer_into_account"
-```
+3.  **The Logic Router:** The "Brain" that decides:
+    * *Critical Action?* → **Execute SQL Transaction** (via `database.py`).
+    * *Policy Question?* → **Trigger RAG Search** (via `rag_engine.py`).
+4.  **The Vault (Database):** A persistent storage layer that tracks the user's $5,000 starting balance and logs every successful transfer.
 
 ---
 
@@ -81,15 +60,23 @@ cd banking-agent
 pip install fastapi uvicorn transformers torch sentence-transformers faiss-cpu pydantic
 ```
 
-### 3. Model Setup
-* Download the zip files and extract the intent and ner model 
-* Place your fine-tuned `intent` model files in: `models/intent/`
-* Place your `ner` model files in: `models/ner/`
-* Ensure `data/knowledge_base.txt` exists.
+### 3. Model Setup (Important!)
+Since AI models are too large for standard git, we use a hybrid approach:
+
+**Step A: Download Public Models**
+Run the included setup script to automatically fetch the NER and Embedding models:
+```bash
+python setup_models.py
+```
+
+**Step B: Download Custom Intent Model**
+1.  Go to the **[Releases Page](../../releases)** of this repository.
+2.  Download `intent_model.zip`.
+3.  Extract it into the folder: `models/intent/`.
+   *(Your folder structure should look like: `models/intent/config.json`, etc.)*
 
 ### 4. Build the Knowledge Base
 Run this script once to vectorize the text policy file:
-
 ```bash
 python build_rag.py
 # Output: ✅ Success! Index saved to data/banking_faiss.index
@@ -99,7 +86,8 @@ python build_rag.py
 ```bash
 python app.py
 ```
-Access the interface at: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+* **Note:** The first run will automatically create `banking_system.db` with a default user ("Admin") and **$5,000 balance**.
+* Access the interface at: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
 ---
 
@@ -107,22 +95,24 @@ Access the interface at: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
 Once the system is running, try these queries to test different parts of the architecture.
 
-### ✅ Test 1: Critical Actions (NER Engine)
+### ✅ Test 1: Real Transactions (SQL + NER)
+* **User:** "Transfer $500 to David."
+    * **Result:** "✅ Success! Sent $500.0 to David. New Balance: $4500.00"
+    * **Mechanism:** Extracts Entity → Updates SQL DB → Returns Confirmation.
+
+* **User:** "Transfer $10,000 to Sarah."
+    * **Result:** "❌ Insufficient Funds. Your balance is $4500.00"
+    * **Mechanism:** Checks SQL DB Balance → Rejects Transaction.
+
+### ✅ Test 2: Critical Safety Rules (Rule Engine)
 * **User:** "I lost my card!"
     * **Result:** "🚨 **SECURITY ALERT:** I have temporarily frozen your account..."
-    * **Mechanism:** Triggers `lost_or_stolen_card` intent → Hardcoded Safety Rule.
+    * **Mechanism:** Triggers `lost_or_stolen_card` intent → Hardcoded Safety Block.
 
-* **User:** "Transfer money to David."
-    * **Result:** "💸 **Transfer Initiated:** Sending funds to **David**..."
-    * **Mechanism:** Triggers Correction Layer → Extracts `David` → Action Response.
-
-### ✅ Test 2: Policy Knowledge (RAG System)
+### ✅ Test 3: Policy Knowledge (RAG System)
 * **User:** "What is the fee for international transfers?"
     * **Result:** "Policy Info: International transaction fees are 3%..."
     * **Mechanism:** Triggers `exchange_rate` intent → Searches Vector DB → Returns Text.
-
-* **User:** "Can I use Apple Pay?"
-    * **Result:** "Policy Info: Yes, we fully support Apple Pay and Google Pay."
 
 ---
 
@@ -131,15 +121,22 @@ Once the system is running, try these queries to test different parts of the arc
 ```text
 banking_agent/
 ├── app.py                 # Main FastAPI application & Logic Router
+├── database.py            # SQLite Manager (The Bank Vault)
 ├── rag_engine.py          # RAG Class for handling FAISS search
 ├── build_rag.py           # Script to vectorize knowledge_base.txt
+├── setup_models.py        # Script to download public AI models
 ├── requirements.txt       # Python dependencies
+├── banking_system.db      # The SQL Database (Auto-created)
 ├── data/
 │   ├── knowledge_base.txt # The Policy Manual (Text source)
 │   └── banking_faiss.index# The Vector Database (Generated)
 ├── models/
-│   ├── intent/            # Fine-tuned DistilBERT files
-│   └── ner/               # BERT-NER files
+│   ├── intent/            # (Download this from Releases)
+│   └── ner/               # (Auto-downloaded by setup script)
 └── static/
     └── index.html         # Frontend Chat Interface
 ```
+
+## ⚠️ Troubleshooting
+* **Windows Users:** If the server crashes immediately, ensure you are **not** using `reload=True` in `app.py`. Windows struggles with reloading heavy PyTorch models. The current code is already optimized for this.
+* **Resetting Money:** To reset your balance back to $5,000, simply delete the `banking_system.db` file and restart the app.
