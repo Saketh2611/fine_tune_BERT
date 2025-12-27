@@ -1,0 +1,21 @@
+# Ignore system files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.git
+.vscode
+
+# Ignore Virtual Environment (We create a fresh one inside Docker)
+venv/
+env/
+
+# Ignore Local Database (We want a fresh DB or a mounted volume)
+*.db
+*.sqlite3
+
+# Ignore Large Generated Files (We will rebuild these inside Docker)
+data/banking_faiss.index
+
+# KEEP models/intent/ (We need your custom brain!)
