@@ -82,6 +82,7 @@ pip install fastapi uvicorn transformers torch sentence-transformers faiss-cpu p
 ```
 
 ### 3. Model Setup
+* Download the zip files and extract the intent and ner model 
 * Place your fine-tuned `intent` model files in: `models/intent/`
 * Place your `ner` model files in: `models/ner/`
 * Ensure `data/knowledge_base.txt` exists.
