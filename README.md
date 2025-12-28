@@ -1,5 +1,9 @@
 # 🏦 Enterprise Banking AI Agent
 
+**🟢 Live Demo:** [http://16.170.149.52:8000](http://16.170.149.52:8000)
+
+---
+
 A full-stack, privacy-first banking assistant capable of routing **77 distinct banking intents**.
 
 This project implements a **Hybrid AI Architecture** that combines **BERT-based Intent Classification**, **Named Entity Recognition (NER)**, and **Retrieval Augmented Generation (RAG)** to handle both transactional commands and policy questions with high precision.
@@ -114,7 +118,7 @@ sudo docker run -d \
   banking-agent
 ```
 
-**Your agent is now live at:** `http://YOUR_ELASTIC_IP:8000`
+**Your agent is now live at:** `http://16.170.149.52:8000`
 
 ---
 
