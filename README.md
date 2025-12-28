@@ -21,10 +21,11 @@ Unlike standard chatbots, this agent features a **Real SQL Transaction Ledger**,
 ## 🛠️ Tech Stack
 
 * **Backend:** FastAPI (Python)
+* **Containerization:** Docker
 * **Database:** SQLite (Built-in, zero config)
 * **ML Models:**
     * *Intent:* Fine-tuned `distilbert-base-uncased` on the **Banking77** dataset.
-    * *NER:* `bert-base-ner` for extracting Names (`PER`) and Amounts.
+    * *NER:* `dslim/bert-base-NER` for extracting Names (`PER`) and Amounts.
     * *Embeddings:* `sentence-transformers/all-MiniLM-L6-v2`.
 * **Vector DB:** FAISS (for high-speed RAG retrieval).
 * **Frontend:** HTML5, CSS3, Vanilla JavaScript.
@@ -44,50 +45,76 @@ The system uses a pipeline of specialized engines:
 
 ---
 
-## 📦 Installation & Setup
+## ☁️ Enterprise Deployment Guide (AWS EC2 + Docker)
 
-### 1. Prerequisites
-* Python 3.8+
-* Virtual Environment (Recommended)
+This guide covers deploying the agent on a production Linux server.
 
-### 2. Installation
+### 1. Infrastructure Requirements
+* **Cloud Provider:** AWS EC2 (or any VPS)
+* **OS:** Ubuntu 24.04 LTS
+* **Instance Size:** `t3.small` (2 vCPU, 2GB RAM)
+* **Ports:** Open `22` (SSH) and `8000` (HTTP)
+* **Network:** Elastic IP (Static IP) recommended for stability.
+
+### 2. Server Provisioning (Anti-Crash Setup)
+Since AI models are memory-intensive, we must first enable "Swap Memory" to prevent the server from freezing during the build process.
+
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/banking-agent.git
+# SSH into your instance
+ssh -i "your-key.pem" ubuntu@your-ip
+
+# Create 4GB of Swap (Emergency RAM)
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 3. Installation
+```bash
+# 1. Install Docker & Utilities
+sudo apt update
+sudo apt install -y docker.io python3-pip unzip
+
+# 2. Clone the Repository
+git clone [https://github.com/yourusername/banking-agent.git](https://github.com/yourusername/banking-agent.git)
 cd banking-agent
-
-# Install dependencies
-pip install fastapi uvicorn transformers torch sentence-transformers faiss-cpu pydantic
 ```
 
-### 3. Model Setup (Important!)
-Since AI models are too large for standard git, we use a hybrid approach:
+### 4. Model Hydration (Host Side)
+To keep the Docker image light and stable, we download the AI models on the host machine first and then mount them.
 
-**Step A: Download Public Models**
-Run the included setup script to automatically fetch the NER and Embedding models:
 ```bash
-python setup_models.py
+# Install temporary download tools
+pip install --break-system-packages transformers huggingface_hub torch
+
+# A. Download NER Model (Reliable Version)
+# Note: We use dslim/bert-base-NER to avoid authentication errors
+python3 -c "from transformers import AutoTokenizer, AutoModelForTokenClassification; import os; os.makedirs('models/ner', exist_ok=True); AutoTokenizer.from_pretrained('dslim/bert-base-NER').save_pretrained('models/ner'); AutoModelForTokenClassification.from_pretrained('dslim/bert-base-NER').save_pretrained('models/ner')"
+
+# B. Download Intent Model
+wget [https://github.com/Saketh2611/fine_tune_BERT/releases/download/v1.0/banking_intent_model.zip](https://github.com/Saketh2611/fine_tune_BERT/releases/download/v1.0/banking_intent_model.zip)
+unzip -o banking_intent_model.zip -d models/intent/
 ```
 
-**Step B: Download Custom Intent Model**
-1.  Go to the **[Releases Page](../../releases)** of this repository.
-2.  Download `intent_model.zip`.
-3.  Extract it into the folder: `models/intent/`.
-   *(Your folder structure should look like: `models/intent/config.json`, etc.)*
+### 5. Launch Application
+Build the container and run it. We use a volume (`-v`) to persist the database so user data survives restarts.
 
-### 4. Build the Knowledge Base
-Run this script once to vectorize the text policy file:
 ```bash
-python build_rag.py
-# Output: ✅ Success! Index saved to data/banking_faiss.index
+# Build the Image
+sudo docker build -t banking-agent .
+
+# Run the Container (Restart Always ensures 100% Uptime)
+sudo docker run -d \
+  -p 8000:8000 \
+  -v $(pwd)/banking_system.db:/app/banking_system.db \
+  --restart always \
+  --name bank-app \
+  banking-agent
 ```
 
-### 5. Run the Server
-```bash
-python app.py
-```
-* **Note:** The first run will automatically create `banking_system.db` with a default user ("Admin") and **$5,000 balance**.
-* Access the interface at: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+**Your agent is now live at:** `http://YOUR_ELASTIC_IP:8000`
 
 ---
 
@@ -96,12 +123,12 @@ python app.py
 Once the system is running, try these queries to test different parts of the architecture.
 
 ### ✅ Test 1: Real Transactions (SQL + NER)
-* **User:** "Transfer $500 to David."
-    * **Result:** "✅ Success! Sent $500.0 to David. New Balance: $4500.00"
-    * **Mechanism:** Extracts Entity → Updates SQL DB → Returns Confirmation.
+* **User:** "Transfer $100 to John."
+    * **Result:** "✅ Success! Sent $100.0 to John. New Balance: $4900.00"
+    * **Mechanism:** Extracts Entity ("John") → Updates SQL DB → Returns Confirmation.
 
 * **User:** "Transfer $10,000 to Sarah."
-    * **Result:** "❌ Insufficient Funds. Your balance is $4500.00"
+    * **Result:** "❌ Insufficient Funds. Your balance is $4900.00"
     * **Mechanism:** Checks SQL DB Balance → Rejects Transaction.
 
 ### ✅ Test 2: Critical Safety Rules (Rule Engine)
@@ -124,19 +151,20 @@ banking_agent/
 ├── database.py            # SQLite Manager (The Bank Vault)
 ├── rag_engine.py          # RAG Class for handling FAISS search
 ├── build_rag.py           # Script to vectorize knowledge_base.txt
-├── setup_models.py        # Script to download public AI models
 ├── requirements.txt       # Python dependencies
-├── banking_system.db      # The SQL Database (Auto-created)
+├── banking_system.db      # The SQL Database (Persistent Volume)
+├── Dockerfile             # Container configuration
 ├── data/
 │   ├── knowledge_base.txt # The Policy Manual (Text source)
 │   └── banking_faiss.index# The Vector Database (Generated)
 ├── models/
-│   ├── intent/            # (Download this from Releases)
-│   └── ner/               # (Auto-downloaded by setup script)
+│   ├── intent/            # Fine-tuned DistilBERT (Banking77)
+│   └── ner/               # dslim/bert-base-NER (Entity Extraction)
 └── static/
     └── index.html         # Frontend Chat Interface
 ```
 
-## ⚠️ Troubleshooting
-* **Windows Users:** If the server crashes immediately, ensure you are **not** using `reload=True` in `app.py`. Windows struggles with reloading heavy PyTorch models. The current code is already optimized for this.
-* **Resetting Money:** To reset your balance back to $5,000, simply delete the `banking_system.db` file and restart the app.
+## ⚠️ Maintenance
+* **View Logs:** `sudo docker logs -f bank-app`
+* **Restart App:** `sudo docker restart bank-app`
+* **Reset Database:** Stop the container, delete `banking_system.db` on the host, and restart.
