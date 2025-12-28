@@ -28,5 +28,8 @@ RUN python build_rag.py
 # 4. Exposure
 EXPOSE 8000
 
+# Add this line BEFORE the "CMD" command
+RUN python setup_models.py
+
 # 5. Runtime Command
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
